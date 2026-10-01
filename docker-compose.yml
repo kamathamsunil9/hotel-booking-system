@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  hotel-db:
+    image: postgres:15
+    container_name: hotel-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: hoteldb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d hoteldb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./hotel-backend
+    container_name: hotel-backend
+    restart: always
+    ports:
+      - "8083:8083"
+    depends_on:
+      hotel-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://hotel-db:5432/hoteldb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: password
+      SERVER_PORT: 8083
+
+  frontend:
+    build: ./hotel-frontend
+    container_name: hotel-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
